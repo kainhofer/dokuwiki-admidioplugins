@@ -1,0 +1,7 @@
+base   admidioplugins
+author Reinhold Kainhofer / OpenAI
+email  
+date   2026-09-15
+name   Admidio Plugin Repository API
+desc   Exposes Struct-based Admidio plugin metadata as a compatibility-aware JSON repository.
+url    https://plugins.demo.open-tools.net/
