@@ -1,0 +1,221 @@
+/*
+ * Styles of the admidioplugins plugin. Colours come from the template's style.ini, so the plugin
+ * info box and the release list follow the wiki's theme.
+ */
+
+.admidioplugins-info {
+    border: 1px solid @ini_border;
+    border-radius: 4px;
+    background-color: @ini_background_alt;
+    padding: .8em 1em;
+    margin: 0 0 1.4em 0;
+
+    .admidioplugins-info-head {
+        font-size: 1.25em;
+        font-weight: bold;
+        margin-bottom: .3em;
+    }
+
+    .admidioplugins-description {
+        margin: 0 0 .5em 0;
+    }
+
+    .admidioplugins-links {
+        margin: .6em 0 0 0;
+
+        a {
+            margin-right: 1em;
+        }
+    }
+}
+
+.admidioplugins-facts {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: .15em 1em;
+    margin: .4em 0;
+
+    dt {
+        font-weight: bold;
+        margin: 0;
+    }
+
+    dd {
+        margin: 0;
+        overflow-wrap: anywhere;
+    }
+}
+
+.admidioplugins-tag {
+    display: inline-block;
+    border: 1px solid @ini_border;
+    border-radius: 3px;
+    padding: 0 .4em;
+    margin: 0 .2em .1em 0;
+    font-size: .9em;
+}
+
+.admidioplugins-download {
+    font-weight: bold;
+}
+
+.admidioplugins-badge {
+    display: inline-block;
+    border-radius: 3px;
+    padding: 0 .45em;
+    font-size: .8em;
+    font-weight: normal;
+    vertical-align: middle;
+    color: #fff;
+    background-color: #6c757d;
+
+    &.badge-rc,
+    &.badge-beta {
+        background-color: #b26a00;
+    }
+
+    &.badge-alpha {
+        background-color: #a4262c;
+    }
+
+    &.badge-deprecated,
+    &.badge-unmaintained,
+    &.badge-legacy,
+    &.badge-archived,
+    &.badge-withdrawn {
+        background-color: #6c757d;
+    }
+}
+
+.admidioplugins-releases {
+    margin: 0 0 1.4em 0;
+
+    ul.admidioplugins-release-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+
+    li.admidioplugins-release {
+        list-style: none;
+        margin: 0 0 .6em 0;
+        padding: .5em .8em;
+        border-left: 3px solid @ini_border;
+        background-color: @ini_background_alt;
+
+        &.status-stable {
+            border-left-color: #2e7d32;
+        }
+
+        &.status-rc,
+        &.status-beta {
+            border-left-color: #b26a00;
+        }
+
+        &.status-alpha {
+            border-left-color: #a4262c;
+        }
+
+        &.status-withdrawn {
+            opacity: .65;
+
+            .admidioplugins-version {
+                text-decoration: line-through;
+            }
+        }
+    }
+
+    .admidioplugins-release-head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: .5em;
+    }
+
+    .admidioplugins-date,
+    .admidioplugins-requires,
+    .admidioplugins-checksum {
+        color: @ini_text_neu;
+        font-size: .9em;
+    }
+
+    .admidioplugins-checksum code {
+        font-size: .85em;
+        background: none;
+        border: 0;
+        padding: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .admidioplugins-notes {
+        margin-top: .3em;
+    }
+
+    .admidioplugins-release-actions {
+        margin-left: auto;
+
+        button {
+            font-size: .85em;
+            margin-left: .3em;
+        }
+    }
+
+    .admidioplugins-controls {
+        margin: .6em 0;
+    }
+}
+
+.admidioplugins-form {
+    margin: .6em 0;
+
+    fieldset {
+        text-align: left;
+        padding: .8em 1em;
+    }
+
+    .admidioplugins-field {
+        display: block;
+        margin: 0 0 .6em 0;
+
+        .label {
+            display: block;
+            font-weight: bold;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            max-width: 40em;
+            box-sizing: border-box;
+        }
+
+        .hint {
+            display: block;
+            font-size: .85em;
+            color: @ini_text_neu;
+        }
+    }
+
+    &.is-add .only-edit,
+    &.is-update .only-add {
+        display: none;
+    }
+
+    .admidioplugins-derived {
+        margin: .6em 0;
+    }
+
+    .admidioplugins-message.error {
+        color: #a4262c;
+        font-weight: bold;
+        white-space: pre-line;
+    }
+}
+
+[hidden].admidioplugins-controls,
+[hidden].admidioplugins-release-actions,
+.admidioplugins-form[hidden],
+.admidioplugins-form [hidden] {
+    display: none !important;
+}

@@ -1,159 +1,142 @@
-# Admidio Plugin Repository API for DokuWiki
+# Admidio plugin directory for DokuWiki
 
-Prototype DokuWiki action plugin that exposes plugin metadata stored in the
-Struct schemas `admidio_plugin` and `admidio_plugin_release` as a
-compatibility-aware JSON repository.
+DokuWiki plugin that turns plugin pages with [struct](https://www.dokuwiki.org/plugin:struct) data
+into the plugin directory of [Admidio](https://www.admidio.org/):
+
+- **Catalogue export** – serves all plugins and releases as the JSON catalogue Admidio's plugin
+  manager reads (format 1, see *Catalogue* below), optionally filtered for one installation.
+- **Plugin info box** – renders the `admidio_plugin` page data with its own template instead of
+  struct's default table.
+- **Release list** – `{{admidioplugins>releases}}` lists the releases of the page as a list with
+  download links, status, version restrictions and notes. Users who may edit the page get an
+  *Add release* button and edit/delete controls.
+- **Release form** – an author enters only the address of the ZIP archive (or the media ID of an
+  archive uploaded to the wiki). Plugin ID, version, Admidio/PHP requirements, size and SHA-256
+  are read from the archive and its `plugin.json`, with the same packaging rules Admidio's
+  installer enforces.
+- **Struct editor guard** – closes a gap in struct's row editor (see *Security*).
 
 ## Requirements
 
-- DokuWiki
-- Struct plugin enabled
-- Struct page schema `admidio_plugin`
-- Struct serial schema `admidio_plugin_release`
-
-The plugin deliberately uses Struct's `ConfigParser` + `SearchConfig` API and
-does not read `struct.sqlite3` directly.
+- DokuWiki (tested with 2026-07-14 "Mort"), PHP 8.0+
+- struct and sqlite plugins
+- The struct schemas `admidio_plugin` (page data, assigned to the plugin namespace) and
+  `admidio_plugin_release` (serial data). `setup_admidio_struct.php` creates both.
+- For archives on other hosts: outbound HTTPS from the wiki server.
 
 ## Installation
 
-Copy this directory to:
+Copy or clone this directory to `lib/plugins/admidioplugins/`.
 
-    lib/plugins/admidio_repository/
+## Page layout
 
-The directory name must be exactly `admidio_repository`.
+A plugin page consists of free wiki text plus
 
-Then make sure the plugin is enabled in DokuWiki's Extension Manager.
+- the page data of `admidio_plugin`, entered in the page editor. It is shown as the info box
+  after the first heading;
+- `{{admidioplugins>releases}}` where the releases should be listed.
 
-## Endpoint
+Do **not** use a `---- struct serial ----` block for the releases: its editor would bypass the
+checks of the release form, and the guard refuses it for this schema anyway.
 
-Example:
+### Pages in other languages
 
-    /doku.php?do=admidio_repository&admidio=5.1.5&php=8.2.12&channel=stable
+Plugin data and releases live on one page per plugin, in the canonical language namespace
+(`canonical_lang`, default `en`): `en:plugins:x`. Assign the `admidio_plugin` schema to that
+namespace only, otherwise two pages would claim the same plugin ID.
 
-Required parameters:
+A page in another language, e.g. `de:plugins:x`, has no data of its own and shows that of its
+counterpart:
 
-- `admidio`: installed Admidio version
-- `php`: installed PHP version
+    {{admidioplugins>info}}
+    {{admidioplugins>releases}}
 
-Optional parameters:
+On a page without plugin data both look up `<canonical_lang>:<rest of the page ID>`; an explicit
+page can be given instead (`{{admidioplugins>releases en:plugins:x}}`). The release list notes
+where the releases are maintained. Adding or editing a release from such a page stores it on the
+canonical page and needs edit permission there. `{{admidioplugins>info}}` renders nothing on the
+canonical page itself, which shows the box already.
 
-- `channel=stable|beta|development` (default: `stable`)
-- `plugin=<plugin_id>` to request one plugin only
+### admidio_plugin (page data)
 
-Aliases:
+| Column | Meaning |
+|---|---|
+| `plugin_id` | Plugin ID as Admidio knows it (the directory name, `[a-z0-9]+(-[a-z0-9]+)*`). Releases can only be added once it is set; every archive must contain exactly this plugin. |
+| `name` | Display name |
+| `description`, `description_de` | Short description in English / German |
+| `author`, `license`, `icon` | Author, SPDX licence, Bootstrap icon class for Admidio (`bi-…`) |
+| `homepage`, `repository` | Links |
+| `category`, `tags` | Classification |
+| `plugin_status` | `active`, `deprecated`, `unmaintained` (listed); `legacy`, `archived` (not in the catalogue) |
 
-- `channel=final` -> `stable`
-- `channel=dev` -> `development`
+### admidio_plugin_release (serial data)
 
-## Release selection
+| Column | Set by |
+|---|---|
+| `version`, `requires_admidio`, `requires_php`, `download`, `sha256`, `size` | read from the archive when the release is added |
+| `release_status` | author: `stable`, `rc`, `beta`, `alpha`, `withdrawn` |
+| `release_date`, `notes` | author |
 
-For each plugin, the endpoint:
+After publishing, an author can change status, date and notes, and narrow the version
+restrictions (e.g. when an incompatibility with a later Admidio version becomes known). Version,
+download and checksum cannot be changed: a new archive is a new release. To stop offering a
+release but keep it visible, set it to `withdrawn`.
 
-1. excludes archived/unmaintained plugins;
-2. checks release channel;
-3. checks inclusive `admidio_min` / `admidio_max`;
-4. checks inclusive `php_min` / `php_max`;
-5. chooses the highest compatible `version` using PHP `version_compare()`.
+Each change to the releases creates a page revision ("Release 1.1.0 added"), so it appears in the
+recent changes and the page history.
 
-`featured` is intentionally ignored. It can still be used by the human-facing
-DokuWiki aggregation page.
+## Catalogue
 
-### Channel mapping
+    doku.php?do=admidioplugins
 
-- `stable`: stable only
-- `beta`: stable, rc, beta
-- `development`: stable, rc, beta, alpha, development/dev
+All parameters are optional:
 
-## Expected Struct fields
+| Parameter | Values | Effect |
+|---|---|---|
+| `format` | `1` (default) | Catalogue format; anything else is answered with 400 |
+| `admidio` | version, e.g. `5.1.0` | only releases whose `requires.admidio` accepts this version |
+| `php` | version, e.g. `8.3.6` | only releases whose `requires.php` accepts this version |
+| `channel` | `stable`, `rc`, `beta`, `alpha`, `all` (default) | only releases of these statuses (cumulative); `all` also includes `withdrawn` |
+| `releases` | `all` (default), `latest` | `latest` keeps the newest remaining release of each status per plugin |
+| `plugin` | comma-separated plugin IDs | only these plugins |
 
-### admidio_plugin
+Plugins without any remaining release are left out. The response is cached on the server (until
+struct data changes, at most `cache_seconds`) and sent with `ETag` and `Cache-Control: public`.
 
-- plugin_id
-- name
-- description
-- author
-- homepage
-- repository
-- license
-- category
-- plugin_status
-- tags
+Only pages anonymous visitors may read, and downloads anonymous visitors may fetch, are part of
+the catalogue. If two pages declare the same `plugin_id`, the page created first owns it.
 
-### admidio_plugin_release
+The format is specified in the Admidio documentation (*Plugin catalogue format 1*).
 
-- version
-- release_date
-- admidio_min
-- admidio_max
-- php_min
-- php_max (optional; query automatically retries without it)
-- download
-- sha256
-- release_status
-- notes
+## Security
 
-The obsolete `plugin` column in the release schema is ignored.
+struct's aggregation editor (the "add row" form below `struct serial` / `struct lookup`
+tables) enforces the page ACL only in JavaScript: its save call checks nothing but the schema's
+"allowed editors", and skips its CSRF check for anonymous users. An anonymous POST to
+`lib/exe/ajax.php?call=plugin_struct_aggregationeditor_save` adds rows to any page;
+`…_delete` removes any row by ID. The guard in `action/guard.php`
 
-## Version range semantics
+- refuses struct's aggregation editor for both Admidio schemas, and inline edits of release rows;
+- for all other schemas, requires a valid security token and edit permission on the page the row
+  belongs to (for deletions looked up by row ID), and a logged-in user for global data.
 
-Minimum and maximum versions are inclusive. Empty means unbounded.
+This was reported to the struct maintainers on 2026-09-18.
 
-For example:
+Additionally `setup_admidio_struct.php` sets `allowed editors: @admin` on the release schema, so
+struct's own editors are closed for it even without the guard.
 
-    admidio_min = 5.1
-    admidio_max =
+The release form requires a logged-in user with edit permission on the page and a valid security
+token for every call. Remote archives are fetched only over HTTPS and only from public addresses
+(every redirect is checked), with the size limit of Admidio's installer.
 
-means all Admidio versions `>= 5.1`.
+## Configuration
 
-Do not use `admidio_max = 5.1` to mean "all 5.1.x versions". It means exactly
-an upper bound of version 5.1, so 5.1.5 would be greater than it. In practice,
-leave the maximum empty unless a real incompatibility is known.
-
-## Example response
-
-```json
-{
-  "repository_version": 1,
-  "generated_at": "2026-09-15T11:00:00+00:00",
-  "environment": {
-    "admidio": "5.1.5",
-    "php": "8.2.12",
-    "channel": "stable"
-  },
-  "plugins": [
-    {
-      "id": "impersonate",
-      "name": "Impersonate",
-      "release": {
-        "version": "1.0.0",
-        "requires": {
-          "admidio": {"min": "5.1", "max": null},
-          "php": {"min": "8.2", "max": null}
-        }
-      }
-    }
-  ]
-}
-```
-
-## Tests to perform manually
-
-With sample releases such as:
-
-- 1.0.0 stable, Admidio >= 5.1, PHP >= 8.2
-- 1.1.0-beta1 beta, Admidio >= 5.1, PHP >= 8.2
-- 1.1.0 stable, Admidio >= 5.2, PHP >= 8.2
-
-check:
-
-    ?do=admidio_repository&admidio=5.1.5&php=8.2&channel=stable
-
-selects 1.0.0,
-
-    ?do=admidio_repository&admidio=5.1.5&php=8.2&channel=beta
-
-selects 1.1.0-beta1, and
-
-    ?do=admidio_repository&admidio=5.2&php=8.2&channel=stable
-
-selects 1.1.0.
+| Option | Default | |
+|---|---|---|
+| `cache_seconds` | 900 | Cache lifetime of the catalogue |
+| `max_archive_mb` | 32 | Largest archive (Admidio's own limit) |
+| `fetch_timeout` | 20 | Timeout for remote archives |
+| `allow_http` | off | Accept `http://` archives |
+| `allow_private_hosts` | off | Accept archives from private addresses (development only) |
+| `guard_struct_editor` | on | See *Security* |
+| `canonical_lang` | `en` | Language namespace holding the plugin data (see *Pages in other languages*) |
