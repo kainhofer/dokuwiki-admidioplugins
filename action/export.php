@@ -294,12 +294,19 @@ class action_plugin_admidioplugins_export extends ActionPlugin
             return null;
         }
 
+        // Only releases whose archive was checked - by the release form or setup --derive, which
+        // record its checksum - are offered for installation. Rows imported from the old pages
+        // (plugins for the pre-5.1 runtime) are listed on the wiki pages, never in the catalogue.
+        $sha256 = strtolower(trim((string)$row['sha256']));
+        if (!preg_match('/^[0-9a-f]{64}$/', $sha256)) {
+            return null;
+        }
+
         $requires = array_filter([
             'admidio' => trim((string)$row['requires_admidio']),
             'php' => trim((string)$row['requires_php']),
         ], static fn(string $value): bool => $value !== '');
 
-        $sha256 = strtolower(trim((string)$row['sha256']));
         $size = trim((string)$row['size']);
 
         $release = [
@@ -308,7 +315,7 @@ class action_plugin_admidioplugins_export extends ActionPlugin
             'date' => $this->isoDate((string)$row['release_date']),
             'requires' => $requires,
             'download' => $download,
-            'sha256' => preg_match('/^[0-9a-f]{64}$/', $sha256) ? $sha256 : '',
+            'sha256' => $sha256,
             'size' => ctype_digit($size) ? (int)$size : '',
             'notes' => trim((string)$row['notes']),
         ];

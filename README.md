@@ -104,7 +104,10 @@ Plugins without any remaining release are left out. The response is cached on th
 struct data changes, at most `cache_seconds`) and sent with `ETag` and `Cache-Control: public`.
 
 Only pages anonymous visitors may read, and downloads anonymous visitors may fetch, are part of
-the catalogue. If two pages declare the same `plugin_id`, the page created first owns it.
+the catalogue. Only releases whose archive was checked (by the release form or
+`setup_admidio_struct.php --derive`, which record its SHA-256) are part of it; rows imported
+without an archive check, such as the releases for the pre-5.1 plugin runtime, are listed on the
+pages only. If two pages declare the same `plugin_id`, the page created first owns it.
 
 The format is specified in the Admidio documentation (*Plugin catalogue format 1*).
 
