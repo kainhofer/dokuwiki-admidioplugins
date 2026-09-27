@@ -47,11 +47,12 @@ class helper_plugin_admidioplugins extends Plugin
     // ------------------------------------------------------------------------------------------
 
     /**
-     * The plugin ID rule of Admidio (Plugin::isValidId).
+     * The plugin ID rule of Admidio (Plugin::isValidId): lowercase letters and digits, with single
+     * hyphens or underscores as separators. It is the plugin's directory name.
      */
     public static function isValidId(string $id): bool
     {
-        return (bool)preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $id);
+        return (bool)preg_match('/^[a-z0-9]+(?:[-_][a-z0-9]+)*$/', $id);
     }
 
     /**

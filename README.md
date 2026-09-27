@@ -69,7 +69,7 @@ renders nothing on the canonical page itself, which shows the box already.
 
 | Column | Meaning |
 |---|---|
-| `plugin_id` | Plugin ID as Admidio knows it (the directory name, `[a-z0-9]+(-[a-z0-9]+)*`). Releases can only be added once it is set; every archive must contain exactly this plugin. |
+| `plugin_id` | Plugin ID as Admidio knows it (the directory name, `[a-z0-9]+([-_][a-z0-9]+)*`). Releases can only be added once it is set; every archive must contain exactly this plugin. |
 | `name` | Display name |
 | `description`, `description_de` | Short description in English / German |
 | `author`, `license`, `icon` | Author, SPDX licence, Bootstrap icon class for Admidio (`bi-…`) |
