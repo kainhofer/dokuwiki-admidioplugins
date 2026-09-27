@@ -7,9 +7,9 @@ into the plugin directory of [Admidio](https://www.admidio.org/):
   manager reads (format 1, see *Catalogue* below), optionally filtered for one installation.
 - **Plugin info box** – renders the `admidio_plugin` page data with its own template instead of
   struct's default table.
-- **Release list** – `{{admidioplugins>releases}}` lists the releases of the page as a list with
-  download links, status, version restrictions and notes. Users who may edit the page get an
-  *Add release* button and edit/delete controls.
+- **Release list** – `{{admidioplugins>releases}}` lists the releases of the page: version, status,
+  comment and date in the head line, the requirements and the notes below it, in the language of the
+  page. Users who may edit the page get an *Add release* button and edit/delete controls.
 - **Release form** – an author enters only the address of the ZIP archive (or the media ID of an
   archive uploaded to the wiki). Plugin ID, version, Admidio/PHP requirements, size and SHA-256
   are read from the archive and its `plugin.json`, with the same packaging rules Admidio's
@@ -52,10 +52,18 @@ counterpart:
     {{admidioplugins>releases}}
 
 On a page without plugin data both look up `<canonical_lang>:<rest of the page ID>`; an explicit
-page can be given instead (`{{admidioplugins>releases en:plugins:x}}`). The release list notes
-where the releases are maintained. Adding or editing a release from such a page stores it on the
-canonical page and needs edit permission there. `{{admidioplugins>info}}` renders nothing on the
-canonical page itself, which shows the box already.
+page can be given instead (`{{admidioplugins>releases en:plugins:x}}`).
+
+**Language.** Both blocks are shown in the language of the namespace the page is in: `de:plugins:x`
+reads German whatever language the wiki interface uses, and vice versa. That applies to the labels
+and to the fields that exist twice - the plugin description and a release's comment and notes - with
+the English text as the fallback when a translation is missing. A namespace this plugin has no
+strings for falls back to the wiki's language. The info box needs no parameter for this: it takes
+the language from the page it is rendered on.
+
+The release list notes where the releases are maintained. Adding or editing a release from such a
+page stores it on the canonical page and needs edit permission there. `{{admidioplugins>info}}`
+renders nothing on the canonical page itself, which shows the box already.
 
 ### admidio_plugin (page data)
 
@@ -75,10 +83,13 @@ canonical page itself, which shows the box already.
 |---|---|
 | `version`, `requires_admidio`, `requires_php`, `download`, `sha256`, `size` | read from the archive when the release is added |
 | `release_status` | author: `stable`, `rc`, `beta`, `alpha`, `withdrawn` |
-| `release_date`, `notes` | author |
+| `release_date` | author |
+| `comment`, `comment_de` | author: a few words shown next to the version, e.g. "security fix" |
+| `notes`, `notes_de` | author: a few lines shown below the requirements |
+| `hide_requires` | author: leaves the Admidio/PHP requirements off the page. The catalogue states them in any case, so this is only about what the page repeats |
 
-After publishing, an author can change status, date and notes, and narrow the version
-restrictions (e.g. when an incompatibility with a later Admidio version becomes known). Version,
+After publishing, an author can change status, date, comment, notes and the requirement display,
+and narrow the version restrictions (e.g. when an incompatibility with a later Admidio version becomes known). Version,
 download and checksum cannot be changed: a new archive is a new release. To stop offering a
 release but keep it visible, set it to `withdrawn`.
 

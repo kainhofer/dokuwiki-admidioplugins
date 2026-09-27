@@ -302,6 +302,18 @@ class action_plugin_admidioplugins_export extends ActionPlugin
             return null;
         }
 
+        /*
+         * Comment and notes exist per language, like a plugin's description. "hide_requires" is not
+         * exported: it only says whether the wiki page repeats what the release requires, which the
+         * catalogue states in any case.
+         */
+        $texts = static function (string $field) use ($row): array {
+            return array_filter([
+                'en' => trim((string)($row[$field] ?? '')),
+                'de' => trim((string)($row[$field . '_de'] ?? '')),
+            ], static fn(string $value): bool => $value !== '');
+        };
+
         $requires = array_filter([
             'admidio' => trim((string)$row['requires_admidio']),
             'php' => trim((string)$row['requires_php']),
@@ -317,7 +329,8 @@ class action_plugin_admidioplugins_export extends ActionPlugin
             'download' => $download,
             'sha256' => $sha256,
             'size' => ctype_digit($size) ? (int)$size : '',
-            'notes' => trim((string)$row['notes']),
+            'comment' => $texts('comment'),
+            'notes' => $texts('notes'),
         ];
 
         return array_filter($release, static fn($value): bool => $value !== '' && $value !== []);

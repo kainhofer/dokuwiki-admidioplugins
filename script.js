@@ -11,6 +11,10 @@ jQuery(function () {
     const config = (JSINFO.plugins || {}).admidioplugins || {};
     const lang = (LANG.plugins || {}).admidioplugins || {};
 
+    // The fields of the release form that carry a plain value, in both languages.
+    const FIELDS = ['release_status', 'requires_admidio', 'requires_php', 'comment', 'comment_de',
+        'notes', 'notes_de'];
+
     const text = function (key, value) {
         const string = lang[key] || key;
         return value === undefined ? string : string.replace('%s', value);
@@ -130,10 +134,11 @@ jQuery(function () {
             const release = $item.data('release');
             openForm('update', $item.children().last(), text('edit_title', release.version));
             rid = release.rid;
-            ['release_status', 'requires_admidio', 'requires_php', 'notes'].forEach(function (name) {
+            FIELDS.forEach(function (name) {
                 $form.find('[name=' + name + ']').val(release[name] || '');
             });
             $form.find('[name=release_date]').val(String(release.release_date || '').replace(/\//g, '-'));
+            $form.find('[name=hide_requires]').prop('checked', !!Number(release.hide_requires));
         });
 
         // Delete a release
@@ -154,9 +159,10 @@ jQuery(function () {
         $form.on('submit', function (event) {
             event.preventDefault();
             const data = {};
-            ['release_status', 'release_date', 'requires_admidio', 'requires_php', 'notes'].forEach(function (name) {
+            FIELDS.concat(['release_date']).forEach(function (name) {
                 data[name] = $form.find('[name=' + name + ']').val();
             });
+            data.hide_requires = $form.find('[name=hide_requires]').prop('checked') ? 1 : 0;
             if (mode === 'add') {
                 data.download = inspected;
             } else {

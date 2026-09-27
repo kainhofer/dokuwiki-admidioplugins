@@ -30,6 +30,8 @@ class action_plugin_admidioplugins_render extends ActionPlugin
      */
     public function renderPluginInfo(Event $event, $param): void
     {
+        global $ID;
+
         $schemadata = $event->data['schemadata'];
         if ($schemadata->getSchema()->getTable() !== helper_plugin_admidioplugins::SCHEMA_PLUGIN) {
             return;
@@ -49,7 +51,7 @@ class action_plugin_admidioplugins_render extends ActionPlugin
         $helper = plugin_load('helper', 'admidioplugins');
         $releases = $helper->getReleases($schemadata->getPid());
 
-        $event->data['renderer']->doc .= $helper->renderInfoBox($data, $releases);
+        $event->data['renderer']->doc .= $helper->renderInfoBox($data, $releases, $helper->displayLanguage((string)$ID));
         $event->data['hasdata'] = true;
     }
 

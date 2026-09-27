@@ -297,11 +297,72 @@ class helper_plugin_admidioplugins extends Plugin
     }
 
     /**
+     * The language a page is shown in: the language namespace it lives in (en:plugins:x, de:...),
+     * or the wiki's language when that namespace is not one this plugin has strings for.
+     */
+    public function displayLanguage(string $pid): string
+    {
+        global $conf;
+
+        $namespace = strtolower(explode(':', $pid)[0]);
+        if (preg_match('/^[a-z]{2}(-[a-z]+)?$/', $namespace) && is_dir(__DIR__ . '/lang/' . $namespace)) {
+            return $namespace;
+        }
+
+        return (string)($conf['lang'] ?? 'en');
+    }
+
+    /**
+     * A string of this plugin in a given language, whatever language the wiki interface uses.
+     *
+     * getLang() answers in the wiki's language, but a German plugin page has to read German even
+     * for a visitor browsing the wiki in English, and the other way round.
+     */
+    public function langFor(string $language, string $key): string
+    {
+        if (!isset($this->languages[$language])) {
+            $lang = [];
+            foreach (array_unique(['en', $language]) as $load) {
+                $file = __DIR__ . '/lang/' . $load . '/lang.php';
+                if (preg_match('/^[a-z]{2}(-[a-z]+)?$/', $load) && file_exists($file)) {
+                    include $file;
+                }
+            }
+            $this->languages[$language] = $lang;
+        }
+
+        return (string)($this->languages[$language][$key] ?? $this->getLang($key));
+    }
+
+    /** Strings per language, as langFor() loaded them. @var array<string,array<string,string>> */
+    private array $languages = [];
+
+    /**
+     * A field that exists per language: "<field>_<language>" when it has content, else the
+     * English "<field>". So a German page shows the German note and falls back to the English one.
+     */
+    public function localized(array $row, string $field, string $language): string
+    {
+        $translated = trim((string)($row[$field . '_' . strtolower($language)] ?? ''));
+
+        return $translated !== '' ? $translated : trim((string)($row[$field] ?? ''));
+    }
+
+    /**
+     * Whether a struct checkbox of a row is ticked.
+     */
+    public static function isFlagSet(array $row, string $field): bool
+    {
+        return trim((string)($row[$field] ?? '')) !== '';
+    }
+
+    /**
      * The info box: name, description, facts, links and the current download.
      */
-    public function renderInfoBox(array $data, array $releases): string
+    public function renderInfoBox(array $data, array $releases, string $language = 'en'): string
     {
         $text = static fn(string $key): string => trim((string)($data[$key] ?? ''));
+        $label = fn(string $key): string => $this->langFor($language, $key);
 
         $status = strtolower($text('plugin_status')) ?: 'active';
         $latest = null;
@@ -318,14 +379,13 @@ class helper_plugin_admidioplugins extends Plugin
         $html .= '<span class="admidioplugins-name">' . hsc($text('name') ?: $text('plugin_id')) . '</span>';
         if ($status !== 'active') {
             $html .= ' <span class="admidioplugins-badge badge-' . hsc($status) . '">'
-                . hsc($this->getLang('plugin_status_' . $status) ?: $status) . '</span>';
+                . hsc($label('plugin_status_' . $status) ?: $status) . '</span>';
         }
         $html .= '</div>';
 
-        foreach (['description' => 'en', 'description_de' => 'de'] as $key => $language) {
-            if ($text($key) !== '') {
-                $html .= '<p class="admidioplugins-description" lang="' . $language . '">' . hsc($text($key)) . '</p>';
-            }
+        $description = $this->localized($data, 'description', $language);
+        if ($description !== '') {
+            $html .= '<p class="admidioplugins-description">' . hsc($description) . '</p>';
         }
 
         $facts = [
@@ -344,14 +404,14 @@ class helper_plugin_admidioplugins extends Plugin
             ));
         }
         if ($latest !== null) {
-            $requires = $this->formatRequires($latest);
+            $requires = self::isFlagSet($latest, 'hide_requires') ? '' : $this->formatRequires($latest);
             $facts['latest'] = hsc((string)$latest['version']) . ($requires !== '' ? ' <span class="admidioplugins-requires">' . $requires . '</span>' : '');
         }
 
         $html .= '<dl class="admidioplugins-facts">';
         foreach ($facts as $key => $value) {
             if ($value !== '') {
-                $html .= '<dt>' . hsc($this->getLang('info_' . $key)) . '</dt><dd>' . $value . '</dd>';
+                $html .= '<dt>' . hsc($label('info_' . $key)) . '</dt><dd>' . $value . '</dd>';
             }
         }
         $html .= '</dl>';
@@ -360,14 +420,14 @@ class helper_plugin_admidioplugins extends Plugin
         foreach (['homepage', 'repository'] as $key) {
             $url = $text($key);
             if (preg_match('~^https?://~i', $url)) {
-                $links[] = '<a class="urlextern" href="' . hsc($url) . '" rel="noopener">' . hsc($this->getLang('info_' . $key)) . '</a>';
+                $links[] = '<a class="urlextern" href="' . hsc($url) . '" rel="noopener">' . hsc($label('info_' . $key)) . '</a>';
             }
         }
         if ($latest !== null) {
             $url = $this->publicDownloadUrl((string)$latest['download']);
             if ($url !== null) {
                 $links[] = '<a class="admidioplugins-download" href="' . hsc($url) . '">'
-                    . hsc(sprintf($this->getLang('info_download'), (string)$latest['version'])) . '</a>';
+                    . hsc(sprintf($label('info_download'), (string)$latest['version'])) . '</a>';
             }
         }
         if ($links) {

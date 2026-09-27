@@ -73,7 +73,11 @@ class syntax_plugin_admidioplugins_info extends SyntaxPlugin
             return true;
         }
 
-        $renderer->doc .= $helper->renderInfoBox($helper->getPluginData($source), $helper->getReleases($source));
+        $renderer->doc .= $helper->renderInfoBox(
+            $helper->getPluginData($source),
+            $helper->getReleases($source),
+            $helper->displayLanguage((string)$ID)
+        );
         return true;
     }
 }

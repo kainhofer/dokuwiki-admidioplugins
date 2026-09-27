@@ -10,10 +10,10 @@
  * its own (de:plugins:x), those of its counterpart in the canonical language (en:plugins:x), or
  * those of an explicitly named page. Releases are always stored on the page holding the data.
  *
- * The list is newest first, with download links, status, requirements and notes. Users who may
- * edit the page holding the data additionally get an "Add release" button and edit/delete controls
- * (shown by script.js; the release form is rendered hidden, because the page is cached for all
- * users).
+ * The list is newest first: version, status, comment and date in the head line, the requirements
+ * and the notes below it, each in the language of the page's namespace. Users who may edit the
+ * page holding the data additionally get an "Add release" button and edit/delete controls (shown
+ * by script.js; the release form is rendered hidden, because the page is cached for all users).
  *
  * @license GPL-2.0-or-later
  */
@@ -86,35 +86,39 @@ class syntax_plugin_admidioplugins_releases extends SyntaxPlugin
 
     private function renderReleases(helper_plugin_admidioplugins $helper, string $pid, string $current): string
     {
+        $language = $helper->displayLanguage($current);
         $releases = $helper->getReleases($pid);
 
         $html = '<div class="admidioplugins-releases" data-pid="' . hsc($pid) . '">';
 
         if ($pid !== $current) {
             $html .= '<p class="admidioplugins-source">'
-                . sprintf(hsc($this->getLang('releases_shared')), html_wikilink(':' . $pid)) . '</p>';
+                . sprintf(hsc($helper->langFor($language, 'releases_shared')), html_wikilink(':' . $pid)) . '</p>';
         }
 
         if ($releases === []) {
-            $html .= '<p class="admidioplugins-empty">' . hsc($this->getLang('releases_none')) . '</p>';
+            $html .= '<p class="admidioplugins-empty">' . hsc($helper->langFor($language, 'releases_none')) . '</p>';
         } else {
             $html .= '<ul class="admidioplugins-release-list">';
             foreach ($releases as $release) {
-                $html .= $this->renderRelease($helper, $release);
+                $html .= $this->renderRelease($helper, $release, $language);
             }
             $html .= '</ul>';
         }
 
         $html .= '<div class="admidioplugins-controls" hidden>'
-            . '<button type="button" class="button admidioplugins-add">' . hsc($this->getLang('btn_add')) . '</button>'
+            . '<button type="button" class="button admidioplugins-add">'
+            . hsc($helper->langFor($language, 'btn_add')) . '</button>'
             . '</div>';
-        $html .= $this->renderForm();
+        $html .= $this->renderForm($helper, $language);
 
         return $html . '</div>';
     }
 
-    private function renderRelease(helper_plugin_admidioplugins $helper, array $release): string
+    private function renderRelease(helper_plugin_admidioplugins $helper, array $release, string $language): string
     {
+        $label = fn(string $key): string => $helper->langFor($language, $key);
+
         $status = helper_plugin_admidioplugins::normalizeStatus((string)$release['release_status']);
         $version = (string)$release['version'];
         $url = $status === 'withdrawn' ? null : $helper->publicDownloadUrl((string)$release['download']);
@@ -127,37 +131,48 @@ class syntax_plugin_admidioplugins_releases extends SyntaxPlugin
             'release_date' => (string)$release['release_date'],
             'requires_admidio' => (string)$release['requires_admidio'],
             'requires_php' => (string)$release['requires_php'],
+            'hide_requires' => helper_plugin_admidioplugins::isFlagSet($release, 'hide_requires') ? 1 : 0,
+            'comment' => (string)$release['comment'],
+            'comment_de' => (string)$release['comment_de'],
             'notes' => (string)$release['notes'],
+            'notes_de' => (string)$release['notes_de'],
         ];
 
         $html = '<li class="admidioplugins-release status-' . hsc($status) . '"'
             . ' data-release="' . hsc(json_encode($editData)) . '">';
 
         $html .= '<div class="admidioplugins-release-head">';
-        $label = sprintf($this->getLang('release_label'), $version);
+        $versionLabel = sprintf($label('release_label'), $version);
         $html .= $url !== null
-            ? '<a class="admidioplugins-download" href="' . hsc($url) . '">' . hsc($label) . '</a>'
-            : '<span class="admidioplugins-version">' . hsc($label) . '</span>';
+            ? '<a class="admidioplugins-download" href="' . hsc($url) . '">' . hsc($versionLabel) . '</a>'
+            : '<span class="admidioplugins-version">' . hsc($versionLabel) . '</span>';
         if ($status !== 'stable') {
             $html .= ' <span class="admidioplugins-badge badge-' . hsc($status) . '">'
-                . hsc($this->getLang('status_' . $status) ?: $status) . '</span>';
+                . hsc($label('status_' . $status) ?: $status) . '</span>';
+        }
+        $comment = $helper->localized($release, 'comment', $language);
+        if ($comment !== '') {
+            $html .= ' <span class="admidioplugins-comment">' . hsc($comment) . '</span>';
         }
         $date = trim((string)$release['release_date']);
         if ($date !== '') {
-            $html .= ' <span class="admidioplugins-date">' . hsc(str_replace('/', '-', $date)) . '</span>';
+            $html .= ' <span class="admidioplugins-date">(' . hsc(str_replace('/', '-', $date)) . ')</span>';
         }
         $html .= '<span class="admidioplugins-release-actions" hidden>'
-            . '<button type="button" class="admidioplugins-edit">' . hsc($this->getLang('btn_edit')) . '</button>'
-            . '<button type="button" class="admidioplugins-delete">' . hsc($this->getLang('btn_delete')) . '</button>'
+            . '<button type="button" class="admidioplugins-edit">' . hsc($label('btn_edit')) . '</button>'
+            . '<button type="button" class="admidioplugins-delete">' . hsc($label('btn_delete')) . '</button>'
             . '</span>';
         $html .= '</div>';
 
-        $requires = $helper->formatRequires($release);
+        // The catalogue always states the requirements; on the page they can be left out, because
+        // they are usually only worth reading when a release needs a newer Admidio than the last.
+        $requires = helper_plugin_admidioplugins::isFlagSet($release, 'hide_requires')
+            ? '' : $helper->formatRequires($release);
         if ($requires !== '') {
-            $html .= '<div class="admidioplugins-requires">' . $this->getLang('release_requires') . ' ' . $requires . '</div>';
+            $html .= '<div class="admidioplugins-requires">' . hsc($label('release_requires')) . ' ' . $requires . '</div>';
         }
 
-        $notes = trim((string)$release['notes']);
+        $notes = $helper->localized($release, 'notes', $language);
         if ($notes !== '') {
             $html .= '<div class="admidioplugins-notes">' . nl2br(hsc($notes)) . '</div>';
         }
@@ -176,16 +191,18 @@ class syntax_plugin_admidioplugins_releases extends SyntaxPlugin
     /**
      * The release form, hidden. script.js shows it for adding or editing.
      */
-    private function renderForm(): string
+    private function renderForm(helper_plugin_admidioplugins $helper, string $language): string
     {
+        $label = fn(string $key): string => $helper->langFor($language, $key);
+
         $statusOptions = '';
         foreach (helper_plugin_admidioplugins::RELEASE_STATUSES as $status) {
-            $statusOptions .= '<option value="' . $status . '">' . hsc($this->getLang('status_' . $status)) . '</option>';
+            $statusOptions .= '<option value="' . $status . '">' . hsc($label('status_' . $status)) . '</option>';
         }
 
-        $field = function (string $name, string $input, string $hint = '', string $class = ''): string {
+        $field = function (string $name, string $input, string $hint = '', string $class = '') use ($label): string {
             return '<label class="admidioplugins-field ' . $class . '">'
-                . '<span class="label">' . hsc($this->getLang('field_' . $name)) . '</span>'
+                . '<span class="label">' . hsc($label('field_' . $name)) . '</span>'
                 . $input
                 . ($hint !== '' ? '<span class="hint">' . hsc($hint) . '</span>' : '')
                 . '</label>';
@@ -197,22 +214,30 @@ class syntax_plugin_admidioplugins_releases extends SyntaxPlugin
             . $field(
                 'download',
                 '<input type="text" name="download" autocomplete="off" />',
-                $this->getLang('hint_download'),
+                $label('hint_download'),
                 'only-add'
             )
             . '<div class="only-add"><button type="button" class="button admidioplugins-inspect">'
-            . hsc($this->getLang('btn_inspect')) . '</button> '
-            . '<button type="button" class="button admidioplugins-cancel">' . hsc($this->getLang('btn_cancel')) . '</button></div>'
+            . hsc($label('btn_inspect')) . '</button> '
+            . '<button type="button" class="button admidioplugins-cancel">' . hsc($label('btn_cancel')) . '</button></div>'
             . '<div class="admidioplugins-derived" hidden></div>'
             . '<div class="admidioplugins-details" hidden>'
             . $field('release_status', '<select name="release_status">' . $statusOptions . '</select>')
             . $field('release_date', '<input type="date" name="release_date" />')
-            . $field('requires_admidio', '<input type="text" name="requires_admidio" />', $this->getLang('hint_requires'), 'only-edit')
+            . $field('comment', '<input type="text" name="comment" />', $label('hint_comment'))
+            . $field('comment_de', '<input type="text" name="comment_de" />')
+            . $field('notes', '<textarea name="notes" rows="3"></textarea>', $label('hint_notes'))
+            . $field('notes_de', '<textarea name="notes_de" rows="3"></textarea>')
+            . $field('requires_admidio', '<input type="text" name="requires_admidio" />', $label('hint_requires'), 'only-edit')
             . $field('requires_php', '<input type="text" name="requires_php" />', '', 'only-edit')
-            . $field('notes', '<textarea name="notes" rows="3"></textarea>')
+            . '<label class="admidioplugins-field admidioplugins-checkbox">'
+            . '<input type="checkbox" name="hide_requires" value="1" /> '
+            . '<span class="label-inline">' . hsc($label('field_hide_requires')) . '</span>'
+            . '<span class="hint">' . hsc($label('hint_hide_requires')) . '</span>'
+            . '</label>'
             . '<div class="admidioplugins-form-buttons">'
-            . '<button type="submit" class="button admidioplugins-save">' . hsc($this->getLang('btn_save')) . '</button> '
-            . '<button type="button" class="button admidioplugins-cancel">' . hsc($this->getLang('btn_cancel')) . '</button>'
+            . '<button type="submit" class="button admidioplugins-save">' . hsc($label('btn_save')) . '</button> '
+            . '<button type="button" class="button admidioplugins-cancel">' . hsc($label('btn_cancel')) . '</button>'
             . '</div>'
             . '</div>'
             . '<div class="admidioplugins-message" role="status"></div>'

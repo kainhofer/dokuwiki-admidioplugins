@@ -43,8 +43,15 @@ $lang['field_release_status'] = 'Status';
 $lang['field_release_date'] = 'Release date';
 $lang['field_requires_admidio'] = 'Requires Admidio';
 $lang['field_requires_php'] = 'Requires PHP';
-$lang['field_notes'] = 'Notes';
+$lang['field_comment'] = 'Comment (English)';
+$lang['field_comment_de'] = 'Comment (German)';
+$lang['field_notes'] = 'Notes (English)';
+$lang['field_notes_de'] = 'Notes (German)';
+$lang['field_hide_requires'] = 'Do not show the requirements on the page';
 $lang['hint_download'] = 'Address of the ZIP archive (GitHub release, your homepage, …) or the media ID of an archive uploaded to this wiki. Version and requirements are read from its plugin.json.';
+$lang['hint_comment'] = 'Shown next to the version, for example "security fix" or "first release for Admidio 5.1".';
+$lang['hint_notes'] = 'Shown below the version, for a few lines about this release.';
+$lang['hint_hide_requires'] = 'The catalogue always states the requirements. Leaving them off the page is useful when they are the same as for the previous release.';
 $lang['hint_requires'] = 'Taken from plugin.json. Only narrow it if an incompatibility became known after the release, e.g. ">=5.1 <5.3".';
 
 // Page history

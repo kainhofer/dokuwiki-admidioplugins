@@ -112,16 +112,14 @@ class action_plugin_admidioplugins_ajax extends ActionPlugin
         $info = $helper->inspectArchive($INPUT->str('download'), $this->pluginId($helper, $pid));
         $this->assertNewVersion($helper, $pid, $info['version']);
 
-        $rid = $helper->saveRelease($pid, [
+        $rid = $helper->saveRelease($pid, $this->authorFields() + [
             'version' => $info['version'],
             'release_date' => $this->date($INPUT->str('release_date')) ?: date('Y-m-d'),
-            'release_status' => $this->status($INPUT->str('release_status')),
             'requires_admidio' => $info['requires_admidio'],
             'requires_php' => $info['requires_php'],
             'download' => $info['download'],
             'sha256' => $info['sha256'],
             'size' => (string)$info['size'],
-            'notes' => $this->notes($INPUT->str('notes')),
         ]);
         $helper->recordChange($pid, sprintf($this->getLang('summary_added'), $info['version']));
 
@@ -143,9 +141,8 @@ class action_plugin_admidioplugins_ajax extends ActionPlugin
 
         $values = $release;
         unset($values['pid'], $values['rid']);
-        $values['release_status'] = $this->status($INPUT->str('release_status'));
+        $values = $this->authorFields() + $values;
         $values['release_date'] = $this->date($INPUT->str('release_date')) ?: (string)$release['release_date'];
-        $values['notes'] = $this->notes($INPUT->str('notes'));
         foreach (['requires_admidio', 'requires_php'] as $key) {
             $constraint = trim($INPUT->str($key));
             if (!helper_plugin_admidioplugins::isReadableConstraint($constraint)) {
@@ -217,12 +214,32 @@ class action_plugin_admidioplugins_ajax extends ActionPlugin
         return $date;
     }
 
-    private function notes(string $notes): string
+    private function text(string $value): string
     {
-        $notes = trim(str_replace("\r\n", "\n", $notes));
-        if (mb_strlen($notes) > self::MAX_NOTES) {
+        $value = trim(str_replace("\r\n", "\n", $value));
+        if (mb_strlen($value) > self::MAX_NOTES) {
             throw new RuntimeException(sprintf($this->getLang('err_notes'), self::MAX_NOTES));
         }
-        return $notes;
+        return $value;
+    }
+
+    /**
+     * What an author writes about a release themselves: the status, the comment shown next to the
+     * version, the notes below it - comment and notes in English and German - and whether the page
+     * repeats the version requirements. The catalogue states them in any case.
+     *
+     * @return array<string,string>
+     */
+    private function authorFields(): array
+    {
+        global $INPUT;
+
+        $values = array('release_status' => $this->status($INPUT->str('release_status')));
+        foreach (['comment', 'comment_de', 'notes', 'notes_de'] as $field) {
+            $values[$field] = $this->text($INPUT->str($field));
+        }
+        $values['hide_requires'] = $INPUT->bool('hide_requires') ? 'hide_requires' : '';
+
+        return $values;
     }
 }

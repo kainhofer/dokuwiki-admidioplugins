@@ -43,8 +43,15 @@ $lang['field_release_status'] = 'Status';
 $lang['field_release_date'] = 'Veröffentlicht am';
 $lang['field_requires_admidio'] = 'Benötigt Admidio';
 $lang['field_requires_php'] = 'Benötigt PHP';
-$lang['field_notes'] = 'Anmerkungen';
+$lang['field_comment'] = 'Kommentar (englisch)';
+$lang['field_comment_de'] = 'Kommentar (deutsch)';
+$lang['field_notes'] = 'Anmerkungen (englisch)';
+$lang['field_notes_de'] = 'Anmerkungen (deutsch)';
+$lang['field_hide_requires'] = 'Voraussetzungen auf der Seite nicht anzeigen';
 $lang['hint_download'] = 'Adresse des ZIP-Archivs (GitHub-Release, eigene Homepage, …) oder die Medien-ID eines in dieses Wiki hochgeladenen Archivs. Version und Voraussetzungen werden aus dessen plugin.json gelesen.';
+$lang['hint_comment'] = 'Wird neben der Version angezeigt, z. B. "Sicherheitsupdate" oder "erste Version für Admidio 5.1".';
+$lang['hint_notes'] = 'Wird unter der Version angezeigt, für ein paar Zeilen zu dieser Version.';
+$lang['hint_hide_requires'] = 'Im Katalog stehen die Voraussetzungen immer. Auf der Seite kann man sie weglassen, wenn sie dieselben sind wie bei der vorigen Version.';
 $lang['hint_requires'] = 'Aus plugin.json übernommen. Nur einschränken, wenn nach der Veröffentlichung eine Inkompatibilität bekannt wurde, z. B. ">=5.1 <5.3".';
 
 // Page history
