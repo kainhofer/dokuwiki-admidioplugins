@@ -86,6 +86,7 @@ renders nothing on the canonical page itself, which shows the box already.
 | `release_date` | author |
 | `comment`, `comment_de` | author: a few words shown next to the version, e.g. "security fix" |
 | `notes`, `notes_de` | author: a few lines shown below the requirements |
+| | Both accept DokuWiki syntax, so a comment can link to a changelog: `[[https://github.com/…/releases\|Changelog]]`. Raw HTML only works where the wiki allows it (`htmlok`); this plugin's own syntax and struct blocks are removed, since they would render themselves again. The catalogue receives plain text, with a link as "label (address)". |
 | `hide_requires` | author: leaves the Admidio/PHP requirements off the page. The catalogue states them in any case, so this is only about what the page repeats |
 
 After publishing, an author can change status, date, comment, notes and the requirement display,

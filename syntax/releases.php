@@ -150,9 +150,9 @@ class syntax_plugin_admidioplugins_releases extends SyntaxPlugin
             $html .= ' <span class="admidioplugins-badge badge-' . hsc($status) . '">'
                 . hsc($label('status_' . $status) ?: $status) . '</span>';
         }
-        $comment = $helper->localized($release, 'comment', $language);
+        $comment = $helper->renderText($helper->localized($release, 'comment', $language));
         if ($comment !== '') {
-            $html .= ' <span class="admidioplugins-comment">' . hsc($comment) . '</span>';
+            $html .= ' <span class="admidioplugins-comment">' . $comment . '</span>';
         }
         $date = trim((string)$release['release_date']);
         if ($date !== '') {
@@ -172,9 +172,9 @@ class syntax_plugin_admidioplugins_releases extends SyntaxPlugin
             $html .= '<div class="admidioplugins-requires">' . hsc($label('release_requires')) . ' ' . $requires . '</div>';
         }
 
-        $notes = $helper->localized($release, 'notes', $language);
+        $notes = $helper->renderText($helper->localized($release, 'notes', $language), false);
         if ($notes !== '') {
-            $html .= '<div class="admidioplugins-notes">' . nl2br(hsc($notes)) . '</div>';
+            $html .= '<div class="admidioplugins-notes">' . $notes . '</div>';
         }
 
         $sha256 = trim((string)$release['sha256']);

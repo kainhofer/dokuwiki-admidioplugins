@@ -307,10 +307,10 @@ class action_plugin_admidioplugins_export extends ActionPlugin
          * exported: it only says whether the wiki page repeats what the release requires, which the
          * catalogue states in any case.
          */
-        $texts = static function (string $field) use ($row): array {
+        $texts = static function (string $field) use ($row, $helper): array {
             return array_filter([
-                'en' => trim((string)($row[$field] ?? '')),
-                'de' => trim((string)($row[$field . '_de'] ?? '')),
+                'en' => $helper->plainText((string)($row[$field] ?? '')),
+                'de' => $helper->plainText((string)($row[$field . '_de'] ?? '')),
             ], static fn(string $value): bool => $value !== '');
         };
 

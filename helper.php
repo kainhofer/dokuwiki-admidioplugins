@@ -349,6 +349,64 @@ class helper_plugin_admidioplugins extends Plugin
         return $translated !== '' ? $translated : trim((string)($row[$field] ?? ''));
     }
 
+    /** Guards renderText() against rendering itself. */
+    private static bool $rendering = false;
+
+    /**
+     * An author's text as HTML: DokuWiki syntax, so that a comment or a note can link to a
+     * changelog (`[[https://…|Changelog]]`) or emphasise a word.
+     *
+     * Raw HTML is only possible when the wiki allows it at all ($conf['htmlok']) - this goes
+     * through DokuWiki's own parser, not around it. This plugin's own syntax and struct's
+     * aggregation blocks are removed first: rendering them here would call this renderer again, or
+     * put a table inside a release entry.
+     *
+     * @param bool $inline Strip the wrapping paragraph, for text inside a line.
+     */
+    public function renderText(string $text, bool $inline = true): string
+    {
+        $text = preg_replace('/\{\{\s*admidioplugins>[^}]*\}\}/i', '', $text);
+        $text = preg_replace('/^\s*-{4,}\s*struct\s+\w+\s*-{4,}\s*$/mi', '', (string)$text);
+        $text = trim((string)$text);
+
+        if ($text === '') {
+            return '';
+        }
+        if (self::$rendering) {
+            return hsc($text);
+        }
+
+        self::$rendering = true;
+        try {
+            $html = (string)p_render('xhtml', p_get_instructions($text), $info);
+        } finally {
+            self::$rendering = false;
+        }
+
+        if ($inline) {
+            $html = preg_replace('#^\s*<p>(.*)</p>\s*$#s', '$1', trim($html));
+        }
+
+        return trim((string)$html);
+    }
+
+    /**
+     * An author's text as plain text, for the catalogue: the wiki syntax a reader would otherwise
+     * see as brackets and asterisks is resolved, a link becomes "label (address)".
+     */
+    public function plainText(string $text): string
+    {
+        $text = preg_replace('/\[\[([^|\]]+)\|([^\]]+)\]\]/', '$2 ($1)', $text);
+        $text = preg_replace('/\[\[([^\]]+)\]\]/', '$1', (string)$text);
+        $text = preg_replace('/\{\{[^}]*\}\}/', '', (string)$text);
+        $text = preg_replace('/^\s*-{4,}\s*struct\s+\w+\s*-{4,}\s*$/mi', '', (string)$text);
+        $text = str_replace(['**', "''", '__'], '', (string)$text);
+        $text = preg_replace('#(?<!:)//#', '', $text);            // italics, but not a URL's "//"
+        $text = preg_replace('/\\\\\\\\\s*/', "\n", (string)$text); // DokuWiki's forced line break
+
+        return trim((string)$text);
+    }
+
     /**
      * Whether a struct checkbox of a row is ticked.
      */
