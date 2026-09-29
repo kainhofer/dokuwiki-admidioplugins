@@ -10,7 +10,9 @@
  *   doku.php?do=admidioplugins
  *   doku.php?do=admidioplugins&format=1&admidio=5.1.0&php=8.3.6&channel=stable&releases=latest
  *
- * Every parameter is optional. Without any, the full catalogue with every release is returned.
+ * Every parameter is optional. Without channel/releases, the answer is channel=stable and
+ * releases=latest - the same view an Admidio client asks for explicitly - not the full history
+ * including withdrawn releases. Pass channel=all and/or releases=all for that.
  *
  * @license GPL-2.0-or-later
  */
@@ -85,7 +87,7 @@ class action_plugin_admidioplugins_export extends ActionPlugin
         }
 
         $channel = strtolower(trim($INPUT->str('channel')));
-        $aliases = ['final' => 'stable', 'dev' => 'alpha', 'development' => 'alpha', '' => 'all'];
+        $aliases = ['final' => 'stable', 'dev' => 'alpha', 'development' => 'alpha', '' => 'stable'];
         $channel = $aliases[$channel] ?? $channel;
         if ($channel !== 'all' && !isset(helper_plugin_admidioplugins::CHANNELS[$channel])) {
             throw new InvalidArgumentException(
@@ -94,7 +96,7 @@ class action_plugin_admidioplugins_export extends ActionPlugin
             );
         }
 
-        $releases = strtolower(trim($INPUT->str('releases', 'all')));
+        $releases = strtolower(trim($INPUT->str('releases', 'latest')));
         if (!in_array($releases, ['all', 'latest'], true)) {
             throw new InvalidArgumentException("Unsupported releases '$releases'. Allowed: all, latest.");
         }
