@@ -212,40 +212,15 @@ class action_plugin_admidioplugins_export extends ActionPlugin
     /**
      * The plugins that may appear in the catalogue, keyed by page ID, without their releases.
      *
-     * A plugin ID claimed by more than one page belongs to the page that was created first; the
-     * others are left out. Otherwise a second page could publish "updates" of somebody else's plugin.
+     * The filtering and the one-page-per-id rule live in helper_plugin_admidioplugins::
+     * getPublicPlugins(), shared with the plugin overview page, so what one lists and what the
+     * other lists can never drift apart.
      */
     private function collectPlugins(helper_plugin_admidioplugins $helper, array $onlyIds): array
     {
-        $candidates = [];
-        foreach ($helper->getAllPlugins() as $pid => $data) {
-            $id = trim((string)($data['plugin_id'] ?? ''));
-            if (!helper_plugin_admidioplugins::isValidId($id)) {
-                continue;
-            }
-            if ($onlyIds !== [] && !in_array($id, $onlyIds, true)) {
-                continue;
-            }
-            $status = strtolower(trim((string)($data['plugin_status'] ?? '')));
-            if (in_array($status, helper_plugin_admidioplugins::HIDDEN_PLUGIN_STATUSES, true)) {
-                continue;
-            }
-            // The catalogue is public: only pages anonymous visitors may read are part of it,
-            // whoever happens to request (and so fill the cache).
-            if (auth_aclcheck($pid, '', []) < AUTH_READ) {
-                continue;
-            }
-            $created = (int)p_get_metadata($pid, 'date created', METADATA_DONT_RENDER);
-            $candidates[$id][] = ['pid' => $pid, 'created' => $created ?: PHP_INT_MAX, 'data' => $data];
-        }
-
         $plugins = [];
-        foreach ($candidates as $id => $claims) {
-            usort($claims, static fn(array $a, array $b): int => [$a['created'], $a['pid']] <=> [$b['created'], $b['pid']]);
-            if (count($claims) > 1) {
-                Logger::debug("admidioplugins: plugin id '$id' is claimed by several pages; using {$claims[0]['pid']}");
-            }
-            $plugins[$claims[0]['pid']] = $this->buildPlugin($id, $claims[0]['pid'], $claims[0]['data']);
+        foreach ($helper->getPublicPlugins($onlyIds) as $pid => $data) {
+            $plugins[$pid] = $this->buildPlugin(trim((string)$data['plugin_id']), $pid, $data);
         }
 
         return $plugins;

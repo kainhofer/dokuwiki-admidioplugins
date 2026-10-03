@@ -16,13 +16,18 @@ $lang['info_tags'] = 'Schlagwörter';
 $lang['info_latest'] = 'Aktuelle Version';
 $lang['info_homepage'] = 'Homepage';
 $lang['info_repository'] = 'Quellcode';
-$lang['info_author_url'] = 'Webseite des Autors';
 $lang['info_download'] = 'Version %s herunterladen';
 $lang['plugin_status_active'] = 'aktiv';
 $lang['plugin_status_deprecated'] = 'veraltet';
 $lang['plugin_status_unmaintained'] = 'nicht mehr gepflegt';
 $lang['plugin_status_legacy'] = 'nur für ältere Admidio-Versionen';
 $lang['plugin_status_archived'] = 'archiviert';
+
+// Plugin-Übersicht
+$lang['overview_filter'] = 'Plugins durchsuchen …';
+$lang['overview_admidio6'] = 'Plugins kompatibel mit Admidio 6';
+$lang['overview_admidio5'] = 'Plugins kompatibel mit Admidio 5';
+$lang['overview_admidio4'] = 'Plugins nur kompatibel mit Admidio 4 oder älter';
 
 // Release list
 $lang['releases_shared'] = 'Die Versionen werden auf %s gepflegt.';

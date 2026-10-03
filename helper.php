@@ -10,6 +10,7 @@
  */
 
 use dokuwiki\Extension\Plugin;
+use dokuwiki\Logger;
 use dokuwiki\plugin\admidioplugins\SafeHttpClient;
 use dokuwiki\plugin\struct\meta\AccessTable;
 use dokuwiki\plugin\struct\meta\ConfigParser;
@@ -215,6 +216,101 @@ class helper_plugin_admidioplugins extends Plugin
             $plugins[$row['%pageid%']] = $row;
         }
         return $plugins;
+    }
+
+    /**
+     * The plugins that may be listed publicly, keyed by page ID: a valid plugin_id, a status that
+     * is not legacy/archived, and a page every anonymous visitor may read. When a plugin_id is
+     * claimed by more than one page, only the one created first is kept - a second page cannot
+     * "take over" somebody else's plugin ID this way.
+     *
+     * Shared by the JSON catalogue (action/export.php) and the plugin overview (syntax/overview.php),
+     * so what one lists and what the other lists can never drift apart.
+     *
+     * @param string[] $onlyIds Plugin IDs to limit the result to; empty means every plugin.
+     * @return array<string,array<string,mixed>> page ID => plugin data, including 'plugin_id'.
+     */
+    public function getPublicPlugins(array $onlyIds = []): array
+    {
+        $candidates = [];
+        foreach ($this->getAllPlugins() as $pid => $data) {
+            $id = trim((string)($data['plugin_id'] ?? ''));
+            if (!self::isValidId($id)) {
+                continue;
+            }
+            if ($onlyIds !== [] && !in_array($id, $onlyIds, true)) {
+                continue;
+            }
+            $status = strtolower(trim((string)($data['plugin_status'] ?? '')));
+            if (in_array($status, self::HIDDEN_PLUGIN_STATUSES, true)) {
+                continue;
+            }
+            // Public means every anonymous visitor may read the page, whoever happens to request
+            // this (and so fill the cache, or render the overview).
+            if (auth_aclcheck($pid, '', []) < AUTH_READ) {
+                continue;
+            }
+            $created = (int)p_get_metadata($pid, 'date created', METADATA_DONT_RENDER);
+            $candidates[$id][] = ['pid' => $pid, 'created' => $created ?: PHP_INT_MAX, 'data' => $data];
+        }
+
+        $plugins = [];
+        foreach ($candidates as $id => $claims) {
+            usort($claims, static fn(array $a, array $b): int => [$a['created'], $a['pid']] <=> [$b['created'], $b['pid']]);
+            if (count($claims) > 1) {
+                Logger::debug("admidioplugins: plugin id '$id' is claimed by several pages; using {$claims[0]['pid']}");
+            }
+            $plugins[$claims[0]['pid']] = $claims[0]['data'];
+        }
+
+        return $plugins;
+    }
+
+    /**
+     * Every public plugin grouped by the Admidio version its newest release requires, for the
+     * overview page: 'admidio6', 'admidio5', 'admidio4' (meaning "4 or older", or no readable
+     * constraint at all). A plugin with no usable release is left out - there is nothing to
+     * classify it by, and the catalogue would not offer it either.
+     *
+     * Classification reads only the newest release (getReleases() already sorts newest first),
+     * not necessarily a stable one: an actively maintained plugin with an old 4.x release and a
+     * current 5.x+ one is listed under 5, not 4, because that is what a visitor on current Admidio
+     * needs to know. A release that states no requires_admidio at all matches every version, by
+     * the same rule PluginStore::pickRelease() uses in Admidio itself - it is listed under 6.
+     *
+     * @return array{admidio6: array<int,array{pid:string,data:array<string,mixed>}>, admidio5: array<int,array{pid:string,data:array<string,mixed>}>, admidio4: array<int,array{pid:string,data:array<string,mixed>}>}
+     */
+    public function getPluginsByAdmidioVersion(): array
+    {
+        $groups = ['admidio6' => [], 'admidio5' => [], 'admidio4' => []];
+
+        foreach ($this->getPublicPlugins() as $pid => $data) {
+            $releases = $this->getReleases($pid);
+            if ($releases === []) {
+                continue;
+            }
+
+            $constraint = (string)($releases[0]['requires_admidio'] ?? '');
+            if (self::versionMatches('6.0.0', $constraint)) {
+                $group = 'admidio6';
+            } elseif (self::versionMatches('5.0.0', $constraint)) {
+                $group = 'admidio5';
+            } else {
+                $group = 'admidio4';
+            }
+
+            $groups[$group][] = ['pid' => $pid, 'data' => $data];
+        }
+
+        foreach ($groups as &$group) {
+            usort($group, static function (array $a, array $b): int {
+                $nameOf = static fn(array $entry): string => (string)($entry['data']['name'] ?? '') ?: $entry['pid'];
+                return strnatcasecmp($nameOf($a), $nameOf($b));
+            });
+        }
+        unset($group);
+
+        return $groups;
     }
 
     /**
@@ -489,9 +585,15 @@ class helper_plugin_admidioplugins extends Plugin
             return $values ? hsc(implode(', ', $values)) : '';
         };
 
+        $authorUrl = $text('author_url');
+        $authorName = hsc($text('author'));
         $facts = [
             'plugin_id' => $text('plugin_id') !== '' ? '<code>' . hsc($text('plugin_id')) . '</code>' : '',
-            'author' => hsc($text('author')),
+            // The author's name links to their page when one is given, rather than repeating the
+            // same link separately among homepage/repository below.
+            'author' => preg_match('~^https?://~i', $authorUrl)
+                ? '<a class="urlextern" href="' . hsc($authorUrl) . '" rel="noopener">' . $authorName . '</a>'
+                : $authorName,
         ];
         // The maintainer is worth a row of its own only when it differs from the author - the
         // common case the struct field's own default assumes.
@@ -539,7 +641,7 @@ class helper_plugin_admidioplugins extends Plugin
         $html .= '</dl>';
 
         $links = [];
-        foreach (['homepage', 'repository', 'author_url'] as $key) {
+        foreach (['homepage', 'repository'] as $key) {
             $url = $text($key);
             if (preg_match('~^https?://~i', $url)) {
                 $links[] = '<a class="urlextern" href="' . hsc($url) . '" rel="noopener">' . hsc($label('info_' . $key)) . '</a>';

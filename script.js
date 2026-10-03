@@ -174,4 +174,30 @@ jQuery(function () {
             }).fail(failed);
         });
     });
+
+    // Plugin overview: a live substring filter over the table rows, typed into the box above
+    // them. The plugin list is short enough that this is all the "search" it needs - no sorting,
+    // no pagination, no new library.
+    jQuery('.admidioplugins-overview-filter').on('input', function () {
+        const $filter = jQuery(this);
+        const query = $filter.val().toString().trim().toLowerCase();
+        const $tables = $filter.closest('.admidioplugins-overview').find('.admidioplugins-overview-table');
+
+        $tables.each(function () {
+            const $table = jQuery(this);
+            let visibleRows = 0;
+
+            $table.find('tr').each(function () {
+                const $row = jQuery(this);
+                const matches = query === '' || $row.text().toLowerCase().indexOf(query) !== -1;
+                $row.toggle(matches);
+                if (matches) {
+                    visibleRows++;
+                }
+            });
+
+            // A heading with nothing left under it would be confusing, so it hides with its table.
+            $table.add($table.prevAll('h3').first()).toggle(visibleRows > 0);
+        });
+    });
 });
