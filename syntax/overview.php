@@ -124,7 +124,7 @@ class syntax_plugin_admidioplugins_overview extends SyntaxPlugin
         $description = $helper->localized($data, 'description', $language);
         // The filter box matches against this row's own text, so the name and description it
         // searches have to be in it somewhere - html_wikilink() already escapes the name.
-        $html = '<tr><td>' . html_wikilink(':' . $pid, $name) . '</td>';
+        $html = '<tr><td>' . html_wikilink(':' . $this->pageInLanguage($pid, $language), $name) . '</td>';
         $html .= '<td>' . hsc($description) . '</td></tr>';
 
         return $html;
