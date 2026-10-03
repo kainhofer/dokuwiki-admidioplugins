@@ -30,7 +30,6 @@ $lang['overview_admidio5'] = 'Plugins kompatibel mit Admidio 5';
 $lang['overview_admidio4'] = 'Plugins nur kompatibel mit Admidio 4 oder älter';
 
 // Release list
-$lang['releases_shared'] = 'Die Versionen werden auf %s gepflegt.';
 $lang['releases_none'] = 'Es wurden noch keine Versionen veröffentlicht.';
 $lang['release_label'] = 'Version %s';
 $lang['release_requires'] = 'Benötigt';

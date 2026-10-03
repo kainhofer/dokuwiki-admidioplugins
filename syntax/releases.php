@@ -91,11 +91,6 @@ class syntax_plugin_admidioplugins_releases extends SyntaxPlugin
 
         $html = '<div class="admidioplugins-releases" data-pid="' . hsc($pid) . '">';
 
-        if ($pid !== $current) {
-            $html .= '<p class="admidioplugins-source">'
-                . sprintf(hsc($helper->langFor($language, 'releases_shared')), html_wikilink(':' . $pid)) . '</p>';
-        }
-
         if ($releases === []) {
             $html .= '<p class="admidioplugins-empty">' . hsc($helper->langFor($language, 'releases_none')) . '</p>';
         } else {
