@@ -253,4 +253,15 @@
     h3 {
         margin-top: 1.2em;
     }
+
+    // One fixed name column for all tables, so Admidio 5 and 6 line up whatever their names are.
+    table.admidioplugins-overview-table {
+        table-layout: fixed;
+        width: 100%;
+
+        td:first-child {
+            width: 14em;
+            overflow-wrap: anywhere;
+        }
+    }
 }

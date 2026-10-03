@@ -101,6 +101,23 @@ class syntax_plugin_admidioplugins_overview extends SyntaxPlugin
         return $html . '</div>';
     }
 
+    /**
+     * The plugin's page in the language being shown: plugin data lives on the canonical-language
+     * page (en:plugins:x), so on a German overview the link has to go to de:plugins:x when that
+     * page exists, and stay on the canonical one otherwise.
+     */
+    private function pageInLanguage(string $pid, string $language): string
+    {
+        if (preg_match('/^[a-z]{2}(?:-[a-z]+)?:(.+)$/', $pid, $match)) {
+            $translated = $language . ':' . $match[1];
+            if ($translated !== $pid && page_exists($translated) && auth_quickaclcheck($translated) >= AUTH_READ) {
+                return $translated;
+            }
+        }
+
+        return $pid;
+    }
+
     private function renderRow(helper_plugin_admidioplugins $helper, string $pid, array $data, string $language): string
     {
         $name = trim((string)($data['name'] ?? '')) ?: (string)($data['plugin_id'] ?? $pid);
