@@ -42,6 +42,41 @@ class helper_plugin_admidioplugins extends Plugin
     public const MANIFEST_FILE = 'plugin.json';
     public const ENTRY_FILE = 'plugin.php';
 
+    /**
+     * Native display name per language code, for the "Supported languages" fact of the info box.
+     * The catalogue itself keeps the raw code (languages/*.xml naming) - this is display only.
+     * Taken from Admidio's own languages/languages.php, the native half of its "English - Native"
+     * name. A code this does not know is shown as entered rather than hidden.
+     */
+    public const LANGUAGE_NAMES = [
+        'bg' => 'Български',
+        'cs' => 'Český',
+        'da' => 'Dansk',
+        'de' => 'Deutsch (du)',
+        'de-DE' => 'Deutsch (Sie)',
+        'el' => 'Ελληνικά',
+        'en' => 'English',
+        'es' => 'Español',
+        'et' => 'Eesti keel',
+        'fi' => 'Suomalainen',
+        'fr' => 'Français',
+        'hu' => 'Magyar',
+        'id' => 'bahasa Indonesia',
+        'it' => 'Italiano',
+        'nb' => 'Norsk Bokmål',
+        'nl' => 'Nederlands',
+        'pl' => 'Polski',
+        'pt' => 'Português',
+        'pt-BR' => 'Português (Brasil)',
+        'ro' => 'Română',
+        'ru' => 'Русский',
+        'sv' => 'Svenska',
+        'ta' => 'தமிழ்',
+        'th' => 'แบบไทย',
+        'uk' => 'український',
+        'zh' => '中文',
+    ];
+
     // ------------------------------------------------------------------------------------------
     // Rules shared with Admidio
     // ------------------------------------------------------------------------------------------
@@ -447,12 +482,40 @@ class helper_plugin_admidioplugins extends Plugin
             $html .= '<p class="admidioplugins-description">' . hsc($description) . '</p>';
         }
 
+        $multiValueText = static function (string $key) use ($data): string {
+            $values = $data[$key] ?? [];
+            $values = is_array($values) ? $values : [$values];
+            $values = array_filter(array_map('trim', $values), 'strlen');
+            return $values ? hsc(implode(', ', $values)) : '';
+        };
+
         $facts = [
             'plugin_id' => $text('plugin_id') !== '' ? '<code>' . hsc($text('plugin_id')) . '</code>' : '',
             'author' => hsc($text('author')),
-            'license' => hsc($text('license')),
-            'category' => hsc($text('category')),
         ];
+        // The maintainer is worth a row of its own only when it differs from the author - the
+        // common case the struct field's own default assumes.
+        $maintainer = $text('maintainer');
+        if ($maintainer !== '' && $maintainer !== $text('author')) {
+            $facts['maintainer'] = hsc($maintainer);
+        }
+        $facts['license'] = hsc($text('license'));
+        $facts['category'] = hsc($text('category'));
+        $facts['supported_databases'] = $multiValueText('supported_databases');
+
+        $translations = $data['supported_translations'] ?? [];
+        $translations = is_array($translations) ? $translations : [$translations];
+        $translations = array_filter(array_map('trim', $translations), 'strlen');
+        if ($translations) {
+            $facts['supported_translations'] = hsc(implode(', ', array_map(
+                static function (string $code): string {
+                    // Data entry has used both "de-DE" (languages/*.xml naming) and "de_DE";
+                    // accept either.
+                    return self::LANGUAGE_NAMES[str_replace('_', '-', $code)] ?? $code;
+                },
+                $translations
+            )));
+        }
         $tags = $data['tags'] ?? [];
         $tags = is_array($tags) ? $tags : [$tags];
         $tags = array_filter(array_map('trim', $tags), 'strlen');
@@ -476,7 +539,7 @@ class helper_plugin_admidioplugins extends Plugin
         $html .= '</dl>';
 
         $links = [];
-        foreach (['homepage', 'repository'] as $key) {
+        foreach (['homepage', 'repository', 'author_url'] as $key) {
             $url = $text($key);
             if (preg_match('~^https?://~i', $url)) {
                 $links[] = '<a class="urlextern" href="' . hsc($url) . '" rel="noopener">' . hsc($label('info_' . $key)) . '</a>';

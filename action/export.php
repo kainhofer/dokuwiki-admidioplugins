@@ -263,22 +263,33 @@ class action_plugin_admidioplugins_export extends ActionPlugin
             'de' => $text('description_de'),
         ], static fn(string $value): bool => $value !== '');
 
-        $tags = $data['tags'] ?? [];
-        $tags = is_array($tags) ? $tags : preg_split('/\s*[,;\n]\s*/u', (string)$tags, -1, PREG_SPLIT_NO_EMPTY);
-        $tags = array_values(array_unique(array_filter(array_map('trim', $tags), 'strlen')));
+        $multiValue = static function (string $key) use ($data): array {
+            $values = $data[$key] ?? [];
+            $values = is_array($values) ? $values : preg_split('/\s*[,;\n]\s*/u', (string)$values, -1, PREG_SPLIT_NO_EMPTY);
+            return array_values(array_unique(array_filter(array_map('trim', $values), 'strlen')));
+        };
+
+        // The maintainer is worth stating only when it differs from the author - the common case
+        // the struct field's own default assumes.
+        $author = $text('author');
+        $maintainer = $text('maintainer');
 
         $plugin = [
             'id' => $id,
             'name' => $text('name') !== '' ? $text('name') : $id,
             'description' => $description,
-            'author' => $text('author'),
+            'author' => $author,
+            'authorUrl' => $text('author_url'),
+            'maintainer' => $maintainer !== '' && $maintainer !== $author ? $maintainer : '',
             'url' => wl($pid, '', true, '&'),
             'homepage' => $text('homepage'),
             'source' => $text('repository'),
             'license' => $text('license'),
             'icon' => $text('icon'),
             'category' => $text('category'),
-            'tags' => $tags,
+            'supportedDatabases' => $multiValue('supported_databases'),
+            'supportedTranslations' => $multiValue('supported_translations'),
+            'tags' => $multiValue('tags'),
             'status' => strtolower($text('plugin_status')) ?: 'active',
         ];
 

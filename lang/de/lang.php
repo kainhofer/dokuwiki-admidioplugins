@@ -7,12 +7,16 @@
 // Plugin info box
 $lang['info_plugin_id'] = 'Plugin-ID';
 $lang['info_author'] = 'Autor';
+$lang['info_maintainer'] = 'Betreuer';
 $lang['info_license'] = 'Lizenz';
 $lang['info_category'] = 'Kategorie';
+$lang['info_supported_databases'] = 'Unterstützte Datenbanken';
+$lang['info_supported_translations'] = 'Unterstützte Sprachen';
 $lang['info_tags'] = 'Schlagwörter';
 $lang['info_latest'] = 'Aktuelle Version';
 $lang['info_homepage'] = 'Homepage';
 $lang['info_repository'] = 'Quellcode';
+$lang['info_author_url'] = 'Webseite des Autors';
 $lang['info_download'] = 'Version %s herunterladen';
 $lang['plugin_status_active'] = 'aktiv';
 $lang['plugin_status_deprecated'] = 'veraltet';
